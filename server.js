@@ -67,8 +67,8 @@ io.on('connection', (socket) => {
   // Handle disconnection
   socket.on('disconnect', () => {
     connectedClients.delete(socket.id);
-    console.log(`Client disconnected: ${socket.id}`);
-    console.log(`Total connected clients: ${connectedClients.size}`);
+    // console.log(`Client disconnected: ${socket.id}`);
+    // console.log(`Total connected clients: ${connectedClients.size}`);
   });
 });
 
