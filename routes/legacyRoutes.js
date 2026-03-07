@@ -1,9 +1,36 @@
 const express = require('express');
-const { hasDbConfig, isDbReady } = require('../db');
+const { hasDbConfig, isDbReady, pool } = require('../db');
 const { broadcastSensorUpdate, getRealtimeReading, getSystemStatusFromValues } = require('../services/realtimeService');
 const { fetchExternalGasData, persistReading, getControlState } = require('../services/safetyService');
 
 const router = express.Router();
+
+// Health check endpoint for mobile app diagnostics
+router.get('/health', async (req, res) => {
+  const timestamp = new Date().toISOString();
+  let databaseStatus = false;
+
+  try {
+    if (pool && isDbReady()) {
+      await pool.query('SELECT 1');
+      databaseStatus = true;
+    }
+  } catch (error) {
+    console.error('Database health check failed:', error.message);
+  }
+
+  const status = databaseStatus ? 'ok' : 'degraded';
+  const statusCode = databaseStatus ? 200 : 503;
+
+  return res.status(statusCode).json({
+    status,
+    timestamp,
+    api: true,
+    socketIo: true,
+    database: databaseStatus,
+    version: '1.0.0'
+  });
+});
 
 router.post('/api/gas-data', async (req, res) => {
   try {

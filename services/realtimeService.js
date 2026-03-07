@@ -65,9 +65,22 @@ function broadcastSensorUpdate(gasData, source, meta = {}) {
   });
 }
 
+function broadcastGasAlert(alertData) {
+  if (!ioRef) {
+    return;
+  }
+
+  ioRef.emit('gas-alert', {
+    title: alertData.message || 'Gas alert detected',
+    co2: alertData.co2 || 0,
+    timestamp: new Date().toISOString()
+  });
+}
+
 module.exports = {
   setIO,
   broadcastSensorUpdate,
+  broadcastGasAlert,
   getRealtimeReading,
   getSystemStatusFromValues
 };

@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { pool, isDbReady } = require('../db');
+const { broadcastGasAlert } = require('./realtimeService');
 
 function toNumber(value) {
   const parsed = Number(value);
@@ -51,15 +52,21 @@ async function ensureDeviceByName(client, deviceName) {
 
 async function maybeCreateAlerts(client, reading) {
   const alertsToInsert = [];
+  const alertsToEmit = [];
 
   if ((reading.co2 || 0) >= 1500) {
     alertsToInsert.push(['danger', 'High CO2 level detected', 'co2', reading.co2]);
+    alertsToEmit.push({ message: 'Gas leak detected', co2: reading.co2 });
   } else if ((reading.co2 || 0) >= 1000) {
     alertsToInsert.push(['warning', 'Elevated CO2 level detected', 'co2', reading.co2]);
+    alertsToEmit.push({ message: 'Elevated CO2 level detected', co2: reading.co2 });
   }
 
   if ((reading.gas_level || 0) >= 20) {
     alertsToInsert.push(['danger', 'High gas level detected', 'gas_level', reading.gas_level]);
+    if (alertsToEmit.length === 0) {
+      alertsToEmit.push({ message: 'Gas leak detected', co2: reading.co2 || 0 });
+    }
   } else if ((reading.gas_level || 0) >= 10) {
     alertsToInsert.push(['warning', 'Elevated gas level detected', 'gas_level', reading.gas_level]);
   }
@@ -69,6 +76,11 @@ async function maybeCreateAlerts(client, reading) {
       'INSERT INTO alerts (type, message, metric, value, resolved) VALUES ($1, $2, $3, $4, false)',
       item
     );
+  }
+
+  // Emit gas-alert for mobile app notifications
+  for (const alert of alertsToEmit) {
+    broadcastGasAlert(alert);
   }
 
   const status = getSystemStatus(reading);

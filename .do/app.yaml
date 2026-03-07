@@ -38,18 +38,9 @@ services:
         value: "8080"
       - key: HOST
         value: "0.0.0.0"
-      - key: DATABASE_URL
-        scope: RUN_AND_BUILD_TIME
-        type: SECRET
+      # DATABASE_URL is configured in DigitalOcean App Platform dashboard
+      # Do not commit database credentials to Git
     
     # Routes
     routes:
       - path: /
-
-# Database (PostgreSQL)
-databases:
-  - name: agas-db
-    engine: PG
-    version: "14"
-    production: false
-    cluster_name: agas-cluster

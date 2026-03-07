@@ -1,6 +1,6 @@
 const { hasDbConfig, isDbReady } = require('../db');
 const { broadcastSensorUpdate, getRealtimeReading, getSystemStatusFromValues } = require('../services/realtimeService');
-const { fetchExternalGasData, persistReading, getControlState } = require('../services/safetyService');
+const { fetchExternalGasData, persistReading, getControlState, toggleControl } = require('../services/safetyService');
 
 function registerSocketHandlers(io) {
   const connectedClients = new Set();
@@ -38,6 +38,76 @@ function registerSocketHandlers(io) {
         socket.emit('fetch-error', {
           message: 'Failed to fetch gas data from API',
           error: error.message
+        });
+      }
+    });
+
+    // Mobile app fan control
+    socket.on('fan-control', async (data) => {
+      if (!hasDbConfig || !isDbReady()) {
+        socket.emit('control-error', {
+          message: 'Database not available',
+          device: 'fan'
+        });
+        return;
+      }
+
+      try {
+        const state = data?.state === 'on' || data?.state === true;
+        const result = await toggleControl('fan', state);
+        
+        // Broadcast state change to all clients
+        io.emit('control-state-update', {
+          device: 'fan',
+          state: state ? 'on' : 'off',
+          timestamp: new Date().toISOString()
+        });
+
+        socket.emit('control-success', {
+          message: result.message,
+          device: 'fan',
+          state: state ? 'on' : 'off'
+        });
+      } catch (error) {
+        console.error('Error controlling fan:', error.message);
+        socket.emit('control-error', {
+          message: error.message,
+          device: 'fan'
+        });
+      }
+    });
+
+    // Mobile app valve control
+    socket.on('valve-control', async (data) => {
+      if (!hasDbConfig || !isDbReady()) {
+        socket.emit('control-error', {
+          message: 'Database not available',
+          device: 'valve'
+        });
+        return;
+      }
+
+      try {
+        const state = data?.state === 'open' || data?.state === true;
+        const result = await toggleControl('valve', state);
+        
+        // Broadcast state change to all clients
+        io.emit('control-state-update', {
+          device: 'valve',
+          state: state ? 'open' : 'close',
+          timestamp: new Date().toISOString()
+        });
+
+        socket.emit('control-success', {
+          message: result.message,
+          device: 'valve',
+          state: state ? 'open' : 'close'
+        });
+      } catch (error) {
+        console.error('Error controlling valve:', error.message);
+        socket.emit('control-error', {
+          message: error.message,
+          device: 'valve'
         });
       }
     });
