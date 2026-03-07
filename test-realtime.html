@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Test Client</title>
+  <script src="https://cdn.socket.io/4.8.0/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .status {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .connected { background: #4CAF50; color: white; }
+    .disconnected { background: #f44336; color: white; }
+    .event-log {
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .event {
+      padding: 8px;
+      margin: 5px 0;
+      border-left: 3px solid #2196F3;
+      background: #f0f0f0;
+    }
+    button {
+      background: #2196F3;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #0b7dda; }
+    .controls {
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔴 Real-Time WebSocket Test Client</h1>
+  
+  <div id="status" class="status disconnected">
+    Disconnected
+  </div>
+
+  <div class="controls">
+    <h3>Connection Controls</h3>
+    <input type="text" id="serverUrl" placeholder="Server URL" 
+           value="https://agas-backend-agtlp.ondigitalocean.app" 
+           style="width: 400px; padding: 8px;">
+    <button onclick="connectSocket()">Connect</button>
+    <button onclick="disconnectSocket()">Disconnect</button>
+  </div>
+
+  <div class="controls">
+    <h3>Test Actions</h3>
+    <button onclick="sendTestData()">📤 Send Test Gas Data (via HTTP POST)</button>
+    <button onclick="requestGasData()">📡 Request Gas Data (via Socket)</button>
+    <button onclick="clearLog()">🗑️ Clear Log</button>
+  </div>
+
+  <div class="controls">
+    <h3>Event Log</h3>
+    <div id="eventLog" class="event-log"></div>
+  </div>
+
+  <script>
+    let socket = null;
+    const eventLog = document.getElementById('eventLog');
+    const statusEl = document.getElementById('status');
+
+    function log(message, data = null) {
+      const timestamp = new Date().toLocaleTimeString();
+      const eventDiv = document.createElement('div');
+      eventDiv.className = 'event';
+      eventDiv.innerHTML = `<strong>${timestamp}</strong> - ${message}`;
+      if (data) {
+        eventDiv.innerHTML += `<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+      }
+      eventLog.insertBefore(eventDiv, eventLog.firstChild);
+      console.log(message, data);
+    }
+
+    function updateStatus(connected) {
+      if (connected) {
+        statusEl.textContent = '✅ Connected';
+        statusEl.className = 'status connected';
+      } else {
+        statusEl.textContent = '❌ Disconnected';
+        statusEl.className = 'status disconnected';
+      }
+    }
+
+    function connectSocket() {
+      const url = document.getElementById('serverUrl').value;
+      
+      if (socket) {
+        socket.disconnect();
+      }
+
+      log(`🔌 Connecting to: ${url}`);
+      
+      socket = io(url, {
+        transports: ['websocket', 'polling'],
+        reconnection: true
+      });
+
+      // Connection events
+      socket.on('connect', () => {
+        log('✅ Socket connected', { socketId: socket.id });
+        updateStatus(true);
+      });
+
+      socket.on('disconnect', (reason) => {
+        log('❌ Socket disconnected', { reason });
+        updateStatus(false);
+      });
+
+      socket.on('connect_error', (error) => {
+        log('❌ Connection error', { error: error.message });
+        updateStatus(false);
+      });
+
+      socket.on('connected', (data) => {
+        log('📨 Received "connected" event', data);
+      });
+
+      // Real-time data events
+      socket.on('gas-data-update', (data) => {
+        log('📊 GAS DATA UPDATE received', data);
+      });
+
+      socket.on('sensor_update', (data) => {
+        log('🌡️ SENSOR UPDATE received', data);
+      });
+
+      socket.on('device_status_update', (data) => {
+        log('📱 DEVICE STATUS UPDATE received', data);
+      });
+
+      socket.on('gas-alert', (data) => {
+        log('🚨 GAS ALERT received', data);
+      });
+
+      socket.on('control-state-update', (data) => {
+        log('🎛️ CONTROL STATE UPDATE received', data);
+      });
+
+      // Fetch events
+      socket.on('fetch-success', (data) => {
+        log('✅ Fetch success', data);
+      });
+
+      socket.on('fetch-error', (data) => {
+        log('❌ Fetch error', data);
+      });
+    }
+
+    function disconnectSocket() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+        log('🔌 Manually disconnected');
+      }
+    }
+
+    function requestGasData() {
+      if (!socket || !socket.connected) {
+        log('❌ Socket not connected');
+        return;
+      }
+      
+      log('📡 Requesting gas data...');
+      socket.emit('fetch-gas-data', {
+        apiUrl: 'https://api.thingspeak.com/channels/2794142/feeds.json?results=1'
+      });
+    }
+
+    async function sendTestData() {
+      const url = document.getElementById('serverUrl').value;
+      
+      const testData = {
+        co2: Math.floor(Math.random() * 2000) + 400,
+        gas_level: Math.floor(Math.random() * 30) + 5,
+        sensorId: 'TEST_SENSOR',
+        temperature: 25.5,
+        humidity: 65.2
+      };
+
+      log('📤 Sending test data via HTTP POST...', testData);
+
+      try {
+        const response = await fetch(`${url}/api/gas-data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(testData)
+        });
+
+        const result = await response.json();
+        log('✅ HTTP POST successful', result);
+        log('⏳ Waiting for real-time broadcast events...');
+      } catch (error) {
+        log('❌ HTTP POST failed', { error: error.message });
+      }
+    }
+
+    function clearLog() {
+      eventLog.innerHTML = '';
+    }
+
+    // Auto-connect on page load
+    window.addEventListener('load', () => {
+      log('🚀 Test client loaded. Click Connect to start.');
+    });
+  </script>
+</body>
+</html>
