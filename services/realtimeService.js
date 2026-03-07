@@ -32,11 +32,15 @@ function getSystemStatusFromValues(reading) {
 
 function broadcastSensorUpdate(gasData, source, meta = {}) {
   if (!ioRef) {
+    console.warn('⚠️ Cannot broadcast: Socket.IO not initialized');
     return;
   }
 
   const reading = getRealtimeReading(gasData);
   const systemStatus = meta.systemStatus || getSystemStatusFromValues(reading);
+
+  const connectedClients = ioRef.engine?.clientsCount || 0;
+  console.log(`📡 Broadcasting to ${connectedClients} connected clients`);
 
   ioRef.emit('gas-data-update', {
     timestamp: new Date(),
@@ -63,18 +67,26 @@ function broadcastSensorUpdate(gasData, source, meta = {}) {
       last_ping: new Date()
     }
   });
+
+  console.log(`✅ Broadcast complete: ${reading.sensorId} | CO2: ${reading.co2} | Gas: ${reading.gas_level} | Status: ${systemStatus}`);
 }
 
 function broadcastGasAlert(alertData) {
   if (!ioRef) {
+    console.warn('⚠️ Cannot broadcast gas alert: Socket.IO not initialized');
     return;
   }
+
+  const connectedClients = ioRef.engine?.clientsCount || 0;
+  console.log(`🚨 Broadcasting GAS ALERT to ${connectedClients} clients`);
 
   ioRef.emit('gas-alert', {
     title: alertData.message || 'Gas alert detected',
     co2: alertData.co2 || 0,
     timestamp: new Date().toISOString()
   });
+
+  console.log(`✅ Gas alert broadcast: ${alertData.message}`);
 }
 
 module.exports = {

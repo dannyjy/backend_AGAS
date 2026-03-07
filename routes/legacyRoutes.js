@@ -32,6 +32,36 @@ router.get('/health', async (req, res) => {
   });
 });
 
+// Socket.IO diagnostics endpoint
+router.get('/socket-status', (req, res) => {
+  const io = req.app.get('io');
+  
+  if (!io) {
+    return res.json({
+      socketIo: false,
+      message: 'Socket.IO not initialized',
+      connectedClients: 0
+    });
+  }
+
+  const connectedClients = io.engine?.clientsCount || 0;
+  const sockets = [];
+  
+  io.sockets.sockets.forEach((socket) => {
+    sockets.push({
+      id: socket.id,
+      connected: socket.connected
+    });
+  });
+
+  return res.json({
+    socketIo: true,
+    connectedClients,
+    clients: sockets,
+    message: `${connectedClients} client(s) connected`
+  });
+});
+
 router.post('/api/gas-data', async (req, res) => {
   try {
     const gasData = req.body;

@@ -24,6 +24,7 @@ const io = socketIO(server, {
 
 app.use(cors());
 app.use(express.json());
+app.set('io', io);
 setIO(io);
 registerSocketHandlers(io);
 
