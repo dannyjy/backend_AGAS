@@ -65,6 +65,36 @@ npm start
 
 Server URL: `http://localhost:3000`
 
+## ☁️ Cloud Deployment
+
+### DigitalOcean (Recommended for Students)
+
+**Quick Start:**
+1. Sign up at [digitalocean.com](https://www.digitalocean.com)
+2. Get $200 free credit: [GitHub Student Pack](https://education.github.com/pack)
+3. Deploy: [cloud.digitalocean.com/apps/new](https://cloud.digitalocean.com/apps/new)
+
+📖 See [DIGITALOCEAN_QUICK_START.md](./DIGITALOCEAN_QUICK_START.md) - 5-minute setup!
+📖 See [DIGITALOCEAN_DEPLOYMENT.md](./DIGITALOCEAN_DEPLOYMENT.md) - Full guide
+
+**Cost**: ~$12/month (FREE for 16+ months with student credits!)
+
+---
+
+### Azure (Alternative)
+
+**Quick Start:**
+```powershell
+azd auth login
+azd env set DATABASE_ADMIN_PASSWORD "YourSecurePassword123!"
+azd up
+```
+
+📖 See [AZURE_QUICK_START.md](./AZURE_QUICK_START.md) for a 5-minute deployment guide.
+📖 See [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md) for complete documentation.
+
+**Note**: Azure for Students may have region restrictions. See [AZURE_REGIONS.md](./AZURE_REGIONS.md).
+
 ## Data Model (Sensor Input)
 
 Only these sensor fields are used now:
